@@ -1,65 +1,219 @@
-import Head from 'next/head';
-import styles from '../styles/Home.module.css';
+import { PureComponent } from 'react';
+import { connect } from 'react-redux';
+import css from 'styled-jsx/css';
+import {
+  Entity,
+  Action,
+  Booking,
+  BookingType,
+  BookingStatus,
+} from '@fhg-test/core';
+import * as rest from '@fhg-test/rest';
 
-export default function Home() {
-  return (
-    <div className={styles.container}>
-      <Head>
-        <title>Create Next App</title>
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
+import { DefaultProps } from '@app/pages/types';
+import Layout from '@app/components/Layout';
+import Btn from '@app/components/Common/Btn';
 
-      <main className={styles.main}>
-        <h1 className={styles.title}>
-          Welcome to <a href="https://nextjs.org">Next.js!</a>
-        </h1>
+import userSelectors from '@app/store/user/selectors';
+import { withAuthSync } from '@app/utils/acl';
 
-        <p className={styles.description}>
-          Get started by editing{' '}
-          <code className={styles.code}>pages/index.js</code>
-        </p>
+type HomeProps = DefaultProps & {
+  readonly hasAccess: Function,
+};
 
-        <div className={styles.grid}>
-          <a href="https://nextjs.org/docs" className={styles.card}>
-            <h3>Documentation &rarr;</h3>
-            <p>Find in-depth information about Next.js features and API.</p>
-          </a>
+type HomeState = {
+  readonly bookings: ReadonlyArray<Booking>,
+  readonly bookingTypes: {
+    readonly [key: string]: BookingType,
+  },
+  readonly bookingStatuses: {
+    readonly [key: string]: BookingStatus,
+  },
+};
 
-          <a href="https://nextjs.org/learn" className={styles.card}>
-            <h3>Learn &rarr;</h3>
-            <p>Learn about Next.js in an interactive course with quizzes!</p>
-          </a>
+const styles = css`
+  table {
+    @apply w-full;
 
-          <a
-            href="https://github.com/vercel/next.js/tree/master/examples"
-            className={styles.card}
-          >
-            <h3>Examples &rarr;</h3>
-            <p>Discover and deploy boilerplate example Next.js projects.</p>
-          </a>
+    thead tr th {
+      @apply text-left uppercase;
+    }
 
-          <a
-            href="https://vercel.com/import?filter=next.js&utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-          >
-            <h3>Deploy &rarr;</h3>
-            <p>
-              Instantly deploy your Next.js site to a public URL with Vercel.
-            </p>
-          </a>
-        </div>
-      </main>
+    tbody tr td {
+      &.dates {
+        > div {
+          @apply flex justify-between;
 
-      <footer className={styles.footer}>
-        <a
-          href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Powered by{' '}
-          <img src="/vercel.svg" alt="Vercel Logo" className={styles.logo} />
-        </a>
-      </footer>
-    </div>
-  );
+          &:not(:last-child) {
+            @apply pb-2;
+          }
+
+          > div:first-child {
+            @apply py-1;
+          }
+        }
+      }
+
+      &.no-items {
+        @apply text-center;
+      }
+    }
+
+    thead tr th,
+    tbody tr td {
+      @apply py-1 px-2 align-top border border-grey-dark;
+
+      &:nth-child(6) {
+        @apply text-right;
+      }
+    }
+  }
+`;
+
+class Home extends PureComponent<HomeProps, HomeState> {
+  constructor(props: HomeProps) {
+    super(props);
+
+    this.state = {
+      bookings: [],
+      bookingTypes: {},
+      bookingStatuses: {},
+    };
+
+    this.handleApproveBooking = this.handleApproveBooking.bind(this);
+    this.handleRejectBooking = this.handleRejectBooking.bind(this);
+  }
+
+  async handleApproveBooking(id: string, dateIndex: number) {
+    const { bookings } = this.state;
+    const updatedBooking = await rest.bookings.approve(id, dateIndex);
+    const updatedBookings = bookings.map(booking =>
+      booking.id === id ? updatedBooking : booking,
+    );
+
+    this.setState({ bookings: updatedBookings });
+  }
+
+  async handleRejectBooking(id: string) {
+    const { bookings } = this.state;
+    const updatedBooking = await rest.bookings.reject(id);
+    const updatedBookings = bookings.map(booking =>
+      booking.id === id ? updatedBooking : booking,
+    );
+
+    this.setState({ bookings: updatedBookings });
+  }
+
+  render() {
+    const { hasAccess } = this.props;
+    const { bookings, bookingTypes, bookingStatuses } = this.state;
+
+    return (
+      <Layout>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Type</th>
+              <th>Location</th>
+              <th>Dates</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {bookings.length > 0 ? (
+              bookings.map((booking, index) => (
+                <tr key={booking.id}>
+                  <td>{index + 1}</td>
+                  <td>{bookingTypes[booking.type as string].name}</td>
+                  <td>{booking.location}</td>
+                  <td className="dates">
+                    {booking.dates.map((date, dateIndex) => (
+                      <div key={dateIndex}>
+                        <div>
+                          {dateIndex + 1}. {new Date(date).toLocaleString()}
+                        </div>
+                        <div>
+                          {booking.status === 'pending-review'
+                            && hasAccess([Entity.Booking, Action.Update]) ? (
+                            <Btn
+                              size="sm"
+                              style="primary"
+                              onClick={() =>
+                                this.handleApproveBooking(booking.id, dateIndex)
+                              }
+                            >
+                              Approve
+                            </Btn>
+                          ) : (
+                            booking.status === 'approved' &&
+                            booking.approvedDate === date && (
+                              <Btn size="sm" style="primary" disabled>
+                                Approved
+                              </Btn>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </td>
+                  <td>{bookingStatuses[booking.status as string].name}</td>
+                  <td>
+                    {booking.status === 'pending-review'
+                      && hasAccess([Entity.Booking, Action.Update]) && (
+                      <Btn
+                        size="sm"
+                        onClick={() => this.handleRejectBooking(booking.id)}
+                      >
+                        Reject
+                      </Btn>
+                    )}
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={6} className="no-items">
+                  No bookings yet!
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+
+        <style jsx>{styles}</style>
+      </Layout>
+    );
+  }
+
+  async componentDidMount() {
+    const [bookings, bookingTypes, bookingStatuses] = await Promise.all([
+      rest.bookings.list(),
+      rest.bookingTypes.list(),
+      rest.bookingStatuses.list(),
+    ]);
+
+    this.setState({
+      bookings,
+      bookingTypes: bookingTypes.reduce(
+        (prev, type) => ({ ...prev, [type.id]: type }),
+        {},
+      ),
+      bookingStatuses: bookingStatuses.reduce(
+        (prev, status) => ({ ...prev, [status.id]: status }),
+        {},
+      ),
+    });
+  }
 }
+
+const mapStateToProps = (state: any) => ({
+  hasAccess: userSelectors.hasAccess(state),
+});
+
+const mapDispatchToProps = {};
+
+export default withAuthSync()(
+  connect(mapStateToProps, mapDispatchToProps)(Home),
+);
