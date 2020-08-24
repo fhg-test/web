@@ -1,0 +1,45 @@
+{
+  "name": "web",
+  "version": "0.0.0",
+  "description": "Web-based Application",
+  "homepage": "https://github.com/fhg-test/web",
+  "bugs": "https://github.com/fhg-test/web/issues",
+  "license": "MIT",
+  "author": "Phat Pham <phat@onroads.xyz> (https://onroads.xyz)",
+  "repository": "https://github.com/fhg-test/web.git",
+  "engines": {
+    "node": "12"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "prebuild": "yarn clean",
+    "build": "next build",
+    "start": "next start",
+    "purge": "rm -rf node_modules",
+    "clean": "rm -rf .next",
+    "format": "prettier --write --ignore-path .gitignore **/*.{ts,tsx}",
+    "format:check": "prettier --check --ignore-path .gitignore **/*.{ts,tsx}",
+    "release": "standard-version --no-verify",
+    "release:major": "yarn release --release-as major",
+    "release:minor": "yarn release --release-as minor",
+    "release:patch": "yarn release --release-as patch"
+  },
+  "dependencies": {
+    "next": "9.5.2",
+    "react": "16.13.1",
+    "react-dom": "16.13.1",
+    "react-redux": "^7.2.1",
+    "redux": "^4.0.5",
+    "redux-devtools-extension": "^2.13.8"
+  },
+  "devDependencies": {
+    "@boringcodes/prettier-config": "^1.2.2",
+    "@types/node": "^14.6.0",
+    "@types/react": "^16.9.46",
+    "husky": "^4.2.5",
+    "lint-staged": "^10.2.11",
+    "prettier": "^2.0.5",
+    "standard-version": "^9.0.0",
+    "typescript": "^4.0.2"
+  }
+}
