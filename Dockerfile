@@ -1,9 +1,9 @@
-FROM node:12-alpine as builder
+FROM node:10-alpine as builder
 WORKDIR /app
 COPY . .
 RUN yarn && yarn build && yarn purge && yarn --production
 
-FROM node:12-alpine
+FROM node:10-alpine
 RUN apk add --no-cache curl
 WORKDIR /app
 COPY --from=builder /app/.next .next
