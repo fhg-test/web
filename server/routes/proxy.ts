@@ -5,9 +5,9 @@ const { API_URL } = process.env;
 
 const routes = () => {
   const router = Router();
-
   router.use('/api', proxyMiddleware({
     target: API_URL,
+    changeOrigin: true,
   }));
 
   return router;
