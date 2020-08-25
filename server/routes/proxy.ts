@@ -8,7 +8,6 @@ const routes = () => {
 
   router.use('/api', proxyMiddleware({
     target: API_URL,
-    pathRewrite: { '^/api': '/' },
   }));
 
   return router;
