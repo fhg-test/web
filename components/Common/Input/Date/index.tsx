@@ -1,8 +1,9 @@
+import { Fragment } from 'react';
 import css from 'styled-jsx/css';
 
 import { DefaultProps } from '../../types';
 import Input from '../../Input';
-import { Fragment } from 'react';
+import datetime from '@app/utils/datetime';
 
 type DateProps = DefaultProps & {
   readonly value?: string,
@@ -21,13 +22,18 @@ const { className, styles } = css.resolve`
   }
 `;
 
-const Date = ({ placeholder = 'mm/dd/yyyy', ...restProps }: DateProps) => (
+const Date = ({
+  placeholder = 'mm/dd/yyyy',
+  value,
+  ...restProps
+}: DateProps) => (
   <Fragment>
     <Input
       className={className}
-      type="date"
+      type="datetime-local"
       autoComplete="date"
       placeholder={placeholder}
+      value={datetime.getDateTimeString(value)}
       {...restProps}
     />
 

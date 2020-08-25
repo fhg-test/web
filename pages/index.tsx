@@ -13,6 +13,7 @@ import * as rest from '@fhg-test/rest';
 import { DefaultProps } from '@app/pages/types';
 import Layout from '@app/components/Layout';
 import Btn from '@app/components/Common/Btn';
+import BookingCreateForm from '@app/components/Form/BookingCreate';
 
 import userSelectors from '@app/store/user/selectors';
 import { withAuthSync } from '@app/utils/acl';
@@ -32,6 +33,10 @@ type HomeState = {
 };
 
 const styles = css`
+  div.booking-create {
+    @apply border border-grey-dark p-2 mb-4;
+  }
+
   table {
     @apply w-full;
 
@@ -80,8 +85,17 @@ class Home extends PureComponent<HomeProps, HomeState> {
       bookingStatuses: {},
     };
 
+    this.handleCreateBooking = this.handleCreateBooking.bind(this);
     this.handleApproveBooking = this.handleApproveBooking.bind(this);
     this.handleRejectBooking = this.handleRejectBooking.bind(this);
+  }
+
+  async handleCreateBooking(data: Booking) {
+    const { bookings } = this.state;
+    const newBooking = await rest.bookings.create(data);
+    const newBookings = bookings.concat(newBooking);
+
+    this.setState({ bookings: newBookings });
   }
 
   async handleApproveBooking(id: string, dateIndex: number) {
@@ -110,6 +124,13 @@ class Home extends PureComponent<HomeProps, HomeState> {
 
     return (
       <Layout>
+        <div className="booking-create">
+          <BookingCreateForm
+            bookingTypes={Object.values(bookingTypes)}
+            onSubmit={this.handleCreateBooking}
+          />
+        </div>
+
         <table>
           <thead>
             <tr>
@@ -135,8 +156,8 @@ class Home extends PureComponent<HomeProps, HomeState> {
                           {dateIndex + 1}. {new Date(date).toLocaleString()}
                         </div>
                         <div>
-                          {booking.status === 'pending-review'
-                            && hasAccess([Entity.Booking, Action.Update]) ? (
+                          {booking.status === 'pending-review' &&
+                          hasAccess([Entity.Booking, Action.Update]) ? (
                             <Btn
                               size="sm"
                               style="primary"
@@ -160,15 +181,15 @@ class Home extends PureComponent<HomeProps, HomeState> {
                   </td>
                   <td>{bookingStatuses[booking.status as string].name}</td>
                   <td>
-                    {booking.status === 'pending-review'
-                      && hasAccess([Entity.Booking, Action.Update]) && (
-                      <Btn
-                        size="sm"
-                        onClick={() => this.handleRejectBooking(booking.id)}
-                      >
-                        Reject
-                      </Btn>
-                    )}
+                    {booking.status === 'pending-review' &&
+                      hasAccess([Entity.Booking, Action.Update]) && (
+                        <Btn
+                          size="sm"
+                          onClick={() => this.handleRejectBooking(booking.id)}
+                        >
+                          Reject
+                        </Btn>
+                      )}
                   </td>
                 </tr>
               ))
